@@ -1,0 +1,20 @@
+{
+  "name": "Snake-node",
+  "version": "1.0.0",
+  "description": "Snake game with AI",
+  "main": "index.js",
+  "dependencies": {
+    "console-read-write": "^0.1.1",
+    "lodash": "^4.17.11",
+    "readline": "^1.3.0",
+    "synaptic": "^1.1.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Snake"
+  ],
+  "license": "ISC"
+}
