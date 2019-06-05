@@ -4,12 +4,14 @@ var _ = require('lodash');
 
 var Config = {
     sensors:4,
-    brainSize:3,
+    brainSize:5,
     outputs:1,
-    populationSize: 50,
-    naturalSelectionTax:0.5,
-    mutationTax: 0.01,
-    crossOverType:0, // 0 -> random, 1 -> slice
+    populationSize: 12,
+    naturalSelectionTax:0.3,
+    naturalPropagation: 1,
+    mutationTax: 0.2,
+    biasScore:0,
+    crossOverType:1, // 0 -> random, 1 -> slice
     getRandon: (min,max) =>{
         return Math.floor(Math.random() * (max - min) + min);
     }
@@ -27,6 +29,7 @@ var Gene = {
     idGene:0,
     generation:0,
     learned:false,
+    bestGene:false,
     score:0
 }
 
@@ -96,6 +99,7 @@ Learner.initialize = (random) =>{
 }
 
 Learner.setBestGene = (gene) =>{
+    gene.bestGene = true
     genome = _.cloneDeep(gene).genome//.toJSON()
     Learner.bestGene = Object.assign({}, gene)
     Learner.bestGene.genome = genome//neural.fromJSON(genome)
@@ -111,9 +115,18 @@ Learner.setBestGene = (gene) =>{
 Nature.nextGeneration = (generation)=>{
     nextGeneration = []
     strongs = Nature.strongSelect(Nature.genes)
-    if(strongs[0].score > Learner.bestScore) Learner.setBestGene(strongs[0])
-    else strongs.unshift(Learner.bestGene)
+    //if(strongs[0].score < 10) return Nature.randomPopulation(generation)
+
+    //let geneSelect = false
+    //strongs.map((g)=>{if(g.bestGene) geneSelect=true})
+
+    //if(strongs[0].score > Learner.bestScore+Config.biasScore || (geneSelect && strongs[0].idGene != Learner.bestGene.idGene)) Learner.setBestGene(strongs[0])
+    //if(strongs[0].score > Learner.bestScore+Config.biasScore) Learner.setBestGene(strongs[0])
+    //else strongs.unshift(Learner.bestGene)
+    Learner.setBestGene(strongs[0])
+    nextGeneration.push(strongs[0])
     nextGeneration.push(Nature.mutate(_.cloneDeep(Learner.bestGene)))
+    nextGeneration = nextGeneration.concat(sorted.slice(0,Math.round(Config.naturalPropagation * strongs.length )))
     
     for (s =0 ; s < strongs.length-1; s++){
         for(l=s+1; l<strongs.length; l++){
@@ -203,7 +216,7 @@ Nature._mutate = (gene,key,probability) =>{
     for (var k = 0; k < gene.length; k++) {
         // verifica probabilidade de mutacao
         if (Math.random() > probability) continue;
-        gene[k][key] += gene[k][key] * (Math.random() - 0.5) * 3 + (Math.random() - 0.5);
+        gene[k][key] = gene[k][key] * (Math.random() - 0.5) * 2 + (Math.random() - 0.5);
       }
 }
 

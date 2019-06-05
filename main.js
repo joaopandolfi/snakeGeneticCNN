@@ -26,18 +26,24 @@ const SB = 'o'; // snake body
 const SF = '$'; // snake food
 const SC = '*'; // snake collision
 
-const SCORE_SURVIVED = 0
+const SCORE_SURVIVED = 0.2
 const SCORE_RIGHT_DIRECTION =1
-const SCORE_DEATH = -5
-const SCORE_EAT = 5
+const SCORE_DEATH = -2
+const SCORE_EAT = 50
+const SCORE_ACTIVATION = 0.3
 
-let FAST = true
+let FAST = false
+let DISABLE_IA = false
+let timering = 10;
+let sleepTime = 10;
+let fType = 1 // 0 -> random , 1 -> defined
+
 
 let score = 0;
 let eats = 0;
 let steps = 0;
 let steps2 = 0;
-let max_steps = 600;
+let max_steps = 800;
 let max_value = 1;
 let act = 0;
 let food = {
@@ -49,12 +55,9 @@ let lastDistance = 0
 let readedSignals = []
 
 let dFromFood = 0;
-let fType = 1 // 0 -> random , 1 -> defined
 let foodPositions =  [[4,5],[10,10],[20,10],[11,2],[7,7],[5,4]]
 let fpCount = 0
-
-let timering = 10;
-let sleepTime = 10;
+let actValue = 0;
 
 let snake = [[SHx, SHy]];
 let Br         = SHx;
@@ -73,6 +76,7 @@ function initGame() {
   lastSd = Sd;
   SdNumber = 1 // N
   fpCount = 0
+  actValue = 0;
 
   score = 0;
   steps = max_steps;
@@ -300,27 +304,32 @@ function spawnFood(r, c) {
   world[r][c] = SF;
 }
 
-function getColisionY(head,mult){
-
+function getColisionY(head,mult,balance){
+  let result = 0
   if((head[0]+(1*mult))<0 || (head[0]+(1*mult))>=WHeight || head[1]<0 || head[1]>= WWidth)
     return 1
-    let elem = world[head[0] +(1*mult) ][head[1]]
-    if(elem != WS){
-      //if(elem == SF) return 0 // Comida
-      return 1 // obstacle
-    }
-  return 0 // Nothing
+  let elem = world[head[0] +(1*mult) ][head[1]]
+  if(elem != WS && elem != SF){
+    //if(elem == SF) return 0 // Comida
+    result = 1 // obstacle
+  }
+  result = (_inSnake(head[0]+(balance*mult),head[1],snake) == -1 && result == 0)?0:1
+  return result // Nothing
 }
 
-function getColisionX(head,mult){
+function getColisionX(head,mult,balance){
+  let result = 0
   if(head[0]<0 || head[0]>=WHeight || (head[1]+(1*mult))<0 || (head[1]+(1*mult))>= WWidth)
     return 1
   let elem = world[head[0]][head[1]+(1*mult)]
-  if(elem != WS){
+  if(elem != WS && elem != SF){
     //if(elem == SF) return 0 // Comida
-    return 1 // obstacle
+    result = 1 // obstacle
   }
-return 0 // Nothing
+
+  result = (_inSnake(head[0],head[1]+(balance*mult),snake) == -1 && result == 0 )?0:1
+
+return result // Nothing
 }
 
 
@@ -354,24 +363,24 @@ function ColisionFrontDistance(snake,directionTaked){
     let right = []
     switch(directionTaked){
       case 'N':
-        front = getColisionY(head,-2)
-        left = getColisionX(head,-2)
-        right = getColisionX(head,2)
+        front = getColisionY(head,-2,0.5)
+        left = getColisionX(head,-2,0.5)
+        right = getColisionX(head,2,0.5)
       break;
       case 'S':
-        front =  getColisionY(head,2)
-        left = getColisionX(head,2)
-        right = getColisionX(head,-2)
+        front =  getColisionY(head,2,0.5)
+        left = getColisionX(head,2,0.5)
+        right = getColisionX(head,-2),0.5
       break;
       case 'W':
         front = getColisionX(head,-2)
-        left = getColisionY(head,2)
-        right = getColisionY(head,-2)
+        left = getColisionY(head,1,1)
+        right = getColisionY(head,-1,1)
       break;
       case 'E':
         front = getColisionX(head,2)
-        left = getColisionY(head,-2)
-        right = getColisionY(head,2)
+        left = getColisionY(head,-1,1)
+        right = getColisionY(head,1,1)
       break;
     }
     
@@ -385,28 +394,32 @@ function angleFromFood(snake,f,direction){
   let mult = 1;
   switch(direction){
     case 'W': // Esquerda
-      if(f.y>head[0]) angle = -1
-      else if(f.y<head[0]) angle = 1
+      if(f.x>head[0]) angle = -1
+      else if(f.x<head[0]) angle = 1
   
+      //angle = angle*Math.abs(Math.atan((head[1] - f.x)/ (head[0] - f.y)) / Math.PI)
      //angle = Math.atan((head[1] - f.x)/ (head[0] - f.y)) / Math.PI
      
      break;
     case 'E': // Direita
-      if(f.y<head[0]) angle = -1
-      else if(f.y>head[0]) angle = 1
+      if(f.x<head[0]) angle = -1 
+      else if(f.x>head[0]) angle = 1
     
+      //angle = angle*Math.abs(Math.atan((f.x - head[1])/ (f.y -head[0]))/Math.PI)
     //angle = Math.atan((f.x - head[1])/ (f.y -head[0])) / Math.PI
       break;
     
     case 'N': // Cima
-      if(f.x<head[1]) angle = -1
-      else if(f.x>head[1]) angle = 1
+      if(f.y<head[1]) angle = -1
+      else if(f.y>head[1]) angle = 1
+      //angle = angle*Math.abs(Math.atan((f.x - head[1])/ (head[0] - f.y )) / Math.PI)
       //angle = Math.atan((f.x - head[1])/ (head[0] - f.y )) / Math.PI
       break;
     case 'S': // Baixo
-      if(f.x>head[1]) angle = -1
-      else if(f.x<head[1]) angle = 1
+      if(f.y>head[1]) angle = -1
+      else if(f.y<head[1]) angle = 1
     
+      //angle =  angle*Math.abs(Math.atan((head[1] - f.x)/ (f.y - head[0])) / Math.PI)
       //angle =  Math.atan((head[1] - f.x)/ (f.y - head[0])) / Math.PI
       break;
     }
@@ -435,8 +448,10 @@ function IA(snake){
   readedSignals = colision.concat(signals)
   decision = brain.takeDecision(readedSignals,Sd)
   if(decision[0] != Sd) {steps--; steps2++;}
-  Sd = decision[0]
+  if(!DISABLE_IA)
+    Sd = decision[0]
   act = decision[1]
+  actValue = decision[2]
   return decision
 }
 
@@ -499,6 +514,8 @@ function computeScore(){
     score+= SCORE_RIGHT_DIRECTION
   else
     score += SCORE_SURVIVED
+  if(actValue < 0.4 || actValue > 0.6)
+    score+= SCORE_ACTIVATION
   //+(steps2/90) - ((Math.abs(food.x - snake[0][1]) + Math.abs(food.y - snake[0][0]) )/100) 
   lastDistance = dist
   return score
@@ -508,8 +525,8 @@ async function endGame(message){
   await clearInterval(timer)
   brain.computeLoose(computeScore() - SCORE_DEATH)
   //console.log(distanceFromFood(snake,food))
-  console.log(message)
-  console.log(brain.tellState())
+  //console.log(message)
+  //console.log(brain.tellState())
   //process.exit();
   brain.prepareToNextGame()
   

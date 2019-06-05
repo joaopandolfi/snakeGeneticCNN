@@ -49,31 +49,16 @@ Brain.takeDecision = (sensors,direction) =>{
     decision = output[0]
     command = ""
     shift = 0
-    if(decision < 0.41){ // Esquerda
-    //if(decision == 0){
-        // Left
-        //command = "W"
+    if(decision < 0.45){ // Esquerda
         shift = -1
-    }else if(decision < 0.51){ // Frente
-    //}else if(decision == 1){
-        // Rigth
-        //command = "E"
-        shift = 0
-    }else if(decision <= 1){ // Dureuita
-    //}else if(decision == 2){
-        // Up
-        //command = "N"
+    }else if(decision > 0.55){ // Dureuita
         shift = 1
-    }//else {
-        // Botton
-     //   command ="S"
-   // }
-
+    }
     pos = directions.indexOf(direction) + shift
     if(pos < 0) pos = 3
     else if(pos == 4) pos = 0
     
-   return [directions[pos],[shift,decision,directions[pos],pos,direction]]
+   return [directions[pos],[shift,decision,directions[pos],pos,direction],output]
 }
 
 Brain.computeLoose = (score)=>{
@@ -82,6 +67,7 @@ Brain.computeLoose = (score)=>{
 
 Brain.prepareToNextGame = () => {
     gene = learner.getNextGene()
+    //gene = learner.bestGene
     Brain.currentNeuron = gene.genome
     Brain.idGene = gene.idGene
 }
